@@ -6,6 +6,7 @@ Created on Sun Dec 01 18:01:07 2019
 """
 
 from Tkinter import *
+import time
 
 class Interface(Frame):
     
@@ -118,7 +119,13 @@ class Interface(Frame):
             self.rectangle = self.canvas.create_rectangle(self.x,self.y,self.x+40,self.y+40, outline="#32cd32", width=3, tags="curseur")
             self.fleche = self.canvas.create_text(self.x+20, self.y+20, text="→", tags="curseur", font=("Helvetica", 20, "bold"))
 
-
+    def countdown(t):
+    while t:
+        mins, secs = divmod(t, 60)
+        timeformat = '{:02d}:{:02d}'.format(mins, secs)
+        print(timeformat, end='\r')
+        time.sleep(1)
+        t -= 1
 
 fenetre = Tk()
 interface=Interface(fenetre)
