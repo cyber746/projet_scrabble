@@ -1,5 +1,3 @@
-#from https://github.com/boringcactus/Appel-Jacobson-scrabble/blob/canon/board.py
-
 class Grille:
 	def __init__(self, taille):
 		#à adapter pour inclure cases bonus
