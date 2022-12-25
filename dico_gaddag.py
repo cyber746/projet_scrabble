@@ -178,7 +178,7 @@ def build_dic():
 	start = time.time()
 	gaddag = Gaddag()
 	mots = []
-	with open('ods8.txt') as file:
+	with open(src) as file:
 		for ligne in file:
 			mot = ligne.strip()
 			mots.append(mot[::-1])
