@@ -1,5 +1,3 @@
-#from https://github.com/boringcactus/Appel-Jacobson-scrabble/blob/canon/solver.py
-
 from dico_gaddag import build_dic
 from grille import grille_test
 
