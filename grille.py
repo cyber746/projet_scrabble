@@ -1,8 +1,11 @@
 class Grille:
-	def __init__(self, taille):
-		#à adapter pour inclure cases bonus
-		self.jetons = []
+	"""Classe construisant la grille de jeu"""
+	def __init__(self, taille, bonus):
 		self.taille = taille
+		self.jetons = []
+		self.bonus = bonus
+		self.mult_mot = get_multiplicateur('M')
+		self.mult_lettre = get_multiplicateur('L')
 		for i in range(taille):
 			ligne = []
 			for j in range(taille):
@@ -38,12 +41,32 @@ class Grille:
 		return self.check_limites(pos) and self.get_jeton(pos) is not None
 
 	def copy(self):
-		#à adapter pour cases bonus
-		resultat = Grille(self.size)
+		resultat = Grille(self.taille, self.bonus)
 		for pos in self.coord_cases():
 			resultat.set_jeton(pos, self.get_jeton(pos))
 		return resultat
 
-def grille_test():
-	g = Grille(15)
-	return g
+	def get_multiplicateur(self, char):
+		g = []
+		for ligne in self.bonus:
+			l = []
+			for case in ligne:
+				if char in case:
+					l.append(int(case[1:]))
+				else:
+					l.append(1)
+			g.append(l)
+		return g
+
+def grille_test(src):
+	"""routine de construction de la grille à partir d'un fichier de paramètres comme celui fourni"""
+	bonus = []
+	with open(src, 'r') as g_txt:
+			taille = int(g_txt.readline().strip())
+			for line in g_txt:
+				ligne = line.strip().split(',')
+				if len(ligne) != taille:
+					return('Erreur dans le fichier de paramètres de la grille')
+				else:
+					bonus.append(ligne)
+	return(Grille(taille, bonus))
