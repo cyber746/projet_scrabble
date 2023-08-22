@@ -1,0 +1,130 @@
+def refcoord(ref): #transforme ref en coord
+    if len(ref)==2:
+        if 0 <= ord(ref[0]) - ord('A') <= 25:
+            return ord(ref[0])-ord('A') , int(ref[1])-1, 'h'
+        else:
+            return ord(ref[1])-ord('A') , int(ref[0])-1, 'v'
+    else:
+        if 0 <= ord(ref[0]) - ord('A') <= 25:
+            return  ord(ref[0])-ord('A') , int(ref[1:])-1, 'h'
+        else:
+            return ord(ref[2])-ord('A') , int(ref[:2])-1, 'v'
+
+    def __print__(self): #print rudimentaire de grille
+        for i in range(15):
+            s = ""
+            for j in range(15):
+                if self.est_occupe((i,j)): s+=self.get_jeton((i,j))
+                else : s+= " "
+            print(s)
+
+    def reliquat(self, ref, mot): #fonction dans le solveur 
+        reliq = list(self.chevalet)
+        c,l,direction = refcoord(ref)
+        pos_scan = c,l
+        for lettre in mot:
+            if not(self.grille.est_occupe(pos_scan)):
+                if lettre == lettre.upper():
+                    for k in range(len(reliq)):
+                        if reliq[k] == lettre:
+                            reliq.pop(k)
+                            break
+                else:
+                    for k in range(len(reliq)):
+                        if reliq[k] == '?':
+                            reliq.pop(k)
+                            break
+            pos_scan = self.apres(pos_scan, direction)
+        return reliq
+
+
+def voy(s):
+    m = 0 
+    for k in s:
+        if k in "AEUIO":
+            m+=1
+    return m
+
+def cons(s):
+    m = 0 
+    for k in s:
+        if not(k in "AEUIOY?"):
+            m+=1
+    return m
+
+def tirage(sac2, reliquat, coup, nb_lettres): #verifier sac>1, voy+y+jok>=1, cons+y+jok>=1
+    sac = sac2.copy()
+    tirage = reliquat.copy()
+    if coup <= 15:
+        v,c = min(2,voy(sac+tirage)),min(2,cons(sac+tirage))
+        if v>0 and c>0:
+            while voy(tirage)<v or cons(tirage)<c or (len(tirage)<nb_lettres and len(sac)>0):
+                if len(tirage) ==  nb_lettres:
+                    sac = sorted(sac + tirage)
+                    tirage = []
+                for k in range(min(nb_lettres,len(sac)+len(tirage)) - len(tirage)):
+                    tirage += sac.pop(rd.randint(0,len(sac)-1))
+        else:
+            while not('Y' in tirage or '?' in tirage) or (len(tirage)<nb_lettres and len(sac)>0):
+                if len(tirage) ==  nb_lettres:
+                    sac = sorted(sac + tirage)
+                    tirage = []
+                for k in range(min(nb_lettres,len(sac)+len(tirage)) - len(tirage)):
+                    tirage += sac.pop(rd.randint(0,len(sac)-1))
+    else:
+        v,c = min(1,voy(sac+tirage)),min(1,cons(sac+tirage))
+        if v>0 and c>0:
+            while voy(tirage)<v or cons(tirage)<c or (len(tirage)<nb_lettres and len(sac)>0):
+                if len(tirage) ==  nb_lettres:
+                    sac = sorted(sac + tirage)
+                    tirage = []
+                for k in range(min(nb_lettres,len(sac)+len(tirage)) - len(tirage)):
+                    tirage += sac.pop(rd.randint(0,len(sac)-1))
+        else:
+            while not('Y' in tirage or '?' in tirage) or (len(tirage)<nb_lettres and len(sac)>0):
+                if len(tirage) ==  nb_lettres:
+                    sac = sorted(sac + tirage)
+                    tirage = []
+                for k in range(min(nb_lettres,len(sac)+len(tirage)) - len(tirage)):
+                    tirage += sac.pop(rd.randint(0,len(sac)-1))
+    return tirage , sac
+
+def fusion(l):
+    s = ""
+    for k in l: s+=k
+    return s
+
+def Partie(dico, grille, sac2, nb_lettres, valeurs, primes, nb_lettres_autorisees): 
+    sac = list(sac2)
+    l = []
+    reliq = []
+    total = sac + reliq
+    while len(total)>1 and (('Y' in total) or ('?' in total) or (voy(total)>0 and cons(total)>0)):
+        t,sac = tirage(sac, reliq, len(l)+1, nb_lettres)
+        S = Solveur(dico,grille,fusion(t),valeurs,primes,nb_lettres_autorisees)
+        S.cherche()
+        S.tri_solutions()
+        while S.trouves == []:
+            sac,reliq = sorted(sac+t),[]
+            t,sac = tirage(sac, reliq, len(l)+1, nb_lettres)
+            S = Solveur(dico,grille,fusion(t),valeurs,primes,nb_lettres_autorisees)
+            S.cherche()
+            S.tri_solutions()
+        k=0
+        tops = []
+        while k<len(S.trouves) and S.trouves[k][2]==S.trouves[0][2]:
+            tops.append(S.trouves[k])
+            k+=1
+        top = rd.choice(tops)
+        reliq = S.reliquat(top[0],top[1])
+        l.append((fusion(t),top[0],top[1],top[2]))
+        grille.placer_mot(top[0],top[1])
+        total = sac + reliq
+    return l
+
+## Crabb
+Gc = build_dic()
+for no in Gc.Node_list:
+    for l in no.edges.items():
+        if not(l[0] in no.possibles) and l[0]!= '!':
+            no.possibles += l[0]
