@@ -1,5 +1,13 @@
 import time
 import random as rd #modif
+import numpy as np
+import copy as copy #modif
+
+txt = open( "/Users/yoannloday/Documents/Scrabble/ods8.txt" , "r") #ods8 ajouté
+l = txt.readlines()
+ods8 = []
+for s in l:
+    ods8.append(s[0:len(s)-1])
 
 class GaddagNode:
 	"""Classe de noeuds constituant le gaddag"""
@@ -47,7 +55,7 @@ class Gaddag:
 			if mot[i] != self.mot_precedent[i]:
 				break
 			prefixe_commun += 1
-		
+
 		if len(self.mot_precedent) == prefixe_commun and self.mot_precedent != "":
 			prefixe_commun -= 1
 
@@ -112,7 +120,7 @@ class Gaddag:
 			if (node is None or not(lettre in node.edges)): return None #jsp comment fonctionne try mais ça marche pas -> modifié
             else : node = self.Node_list[node.edges[lettre]] # modif pour renvoyer noeud et pas int
 		return node
-		
+
 	def parcours_list(self, index, pile):
 		"""routine de parcours de l'arbre quand il est sous forme de liste (à tester)"""
 		while pile:
@@ -130,7 +138,7 @@ class Gaddag:
 		lettre1 = pile.pop(0)
 		node = self.parcours(node, pile)
 		return lettre1 in node.possibles
-	
+
 	def cherche_list(self, mot):
 		"""routine de recherche d'un mot dans l'arbre quand il a été mis sous forme de liste (à tester)"""
 		pile = list(mot)
@@ -141,14 +149,14 @@ class Gaddag:
 	def anagram_list(self, tirage):
 		"""routine de recherche d'anagramme (à faire)"""
 		pass
-		
+
 
 	def pivot(self, pref2, suff2): #modif
 		"""routine de recherche des pivots"""
 		pref, suff = pref2.upper(),suff2.upper() #modif
 		node = self.root
 		if len(suff) >= len(pref):
-			pile = list(suff)	
+			pile = list(suff)
 			node = self.parcours(node, pile)
 			if node is None:
 				return ""
@@ -158,7 +166,7 @@ class Gaddag:
 				possibles = ""
 				for char in node.edges.keys():
 					node_test = self.parcours(node, list(pref[1:]+char))
-					if node_test is not None and pref[0] in node_test.possibles:
+					if node_test is not None and pref[0] in node_test.possibles and char!="!":
 						possibles += char
 				return possibles
 		else:
@@ -245,7 +253,7 @@ def build_dic():
 	start = time.time()
 	gaddag = Gaddag()
 	mots = []
-	with open('/Users/yoannloday/Documents/Scrabble/ods8.txt') as file:
+	with open('/Users/yoannloday/Documents/Scrabble/crabbods8.txt') as file:
 		for ligne in file:
 			mot = ligne.strip()
 			mots.append(mot[::-1])
@@ -270,7 +278,11 @@ def refcoord(ref):
             return  ord(ref[0])-ord('A') , int(ref[1:])-1, 'h'
         else:
             return ord(ref[2])-ord('A') , int(ref[:2])-1, 'v'
-    
+
+def coordref(coord,direction):
+    (i,j) = coord
+    if direction == 'h': return chr(ord('A')+i)+str(j+1)
+    else: return str(j+1)+chr(ord('A')+i)
 
 ##
 
@@ -334,7 +346,7 @@ class Grille:
 	def set_jeton(self, pos, jeton):
 		ligne, col = pos
 		self.jetons[ligne][col] = jeton
-		
+
     def placer_mot(self, ref, mot): #modif
         ligne, col = refcoord(ref)[:2]
         if 0 <= ord(ref[0]) - ord('A') <= 25:
@@ -343,7 +355,7 @@ class Grille:
         else:
             for k in range(len(mot)):
                 self.set_jeton((ligne + k, col), mot[k])
-	
+
 	def check_limites(self, pos):
 		ligne, col = pos
 		return ligne >= 0 and ligne < self.taille and col >= 0 and col < self.taille
@@ -391,6 +403,8 @@ V = { "A": 1, "B" : 3, "C" : 3, "D" : 2, "E" : 1, "F" : 4, "G" : 2, "H" : 4, "I"
 
 P = {0:0,1:0,2:0,3:0,4:0,5:0,6:0,7:50,8:75,9:100,10:125}
 
+R = list("??AAAAAAAAABBCCDDDEEEEEEEEEEEEEEEFFGGHHIIIIIIIIJKLLLLLMMMNNNNNNOOOOOOPPQRRRRRRSSSSSSTTTTTTUUUUUUVVWXYZ")
+
 ##
 #from dico_gaddag import build_dic
 #from grille import grille_test
@@ -412,7 +426,7 @@ class Solveur:
 		self.score_pivot = [[{'v':0,'h':0} for _ in range(grille.taille)] for _ in range(grille.taille)] #modif pour résoudre KeyError
 		self.ancres = []
 		self.trouves = []
-                
+
 	def avant(self, pos, direction):
 		"""retourne la case avant pos dans une direction donnée"""
 		ligne, col = pos
@@ -442,7 +456,7 @@ class Solveur:
 		ancres = []
 		for pos in self.grille.coord_cases():
 			vide = self.grille.est_vide(pos)
-			voisins_occupes = self.grille.est_occupe(self.avant(pos,'h')) or self.grille.est_occupe(self.apres(pos,'h')) or self.grille.est_occupe(self.avant(pos,'v')) or self.grille.est_occupe(self.apres(pos,'v')) 
+			voisins_occupes = self.grille.est_occupe(self.avant(pos,'h')) or self.grille.est_occupe(self.apres(pos,'h')) or self.grille.est_occupe(self.avant(pos,'v')) or self.grille.est_occupe(self.apres(pos,'v'))
 			if vide and voisins_occupes:
 				ancres.append(pos)
 		if not ancres:
@@ -489,7 +503,6 @@ class Solveur:
 			return 0
 
 	def cherche(self):
-	    print(self.chevalet)
 		"""Cherche tous les coups possibles en parcourant toutes les ancres"""
 		start = time.time()
 		self.trouve_ancres()
@@ -504,7 +517,7 @@ class Solveur:
 					node = self.dico.root
 				chevalet = [x for x in self.chevalet]
 				self.generer_coups(ancre, 0, direction, suff, chevalet, node)
-		print("Recherche faite en {0}s".format(time.time()-start))
+#		print("Recherche faite en {0}s".format(time.time()-start))
 
 	def autorises(self, pos, direction):
 		"""Retourne toutes les lettres autorisées sur une case pos"""
@@ -560,7 +573,7 @@ class Solveur:
 					shift_apres = len(self.suff[pos_ancre[0]][pos_ancre[1]][direction]) + 1
 				except KeyError:
 					shift_apres = 1
-				if node is not None and not self.grille.est_occupe(pos_scan): # and self.grille.check_limites(pos_scan): # pas modif 
+				if node is not None and not self.grille.est_occupe(pos_scan):
 					self.generer_coups(pos_ancre, shift_apres, direction, mot, chevalet, node)
 		else:
 			mot = mot + lettre
@@ -571,8 +584,7 @@ class Solveur:
 			node = self.dico.parcours(node, [lettre])
 			if node is not None: #and self.grille.est_vide(self.apres(pos_scan, direction)): #modif
 				self.generer_coups(pos_ancre, shift+1, direction, mot, chevalet, node)
-# aucune vérification de sortie de grille ?
-# pb avec les double appuis
+
 
     def compte(self, pos, direction, mot):
         """Compte le mot trouvé"""
@@ -617,7 +629,7 @@ class Solveur:
 
 	def tri_solutions(self): #à voir si cette fonction a sa place ici (peut-être dans un futur partie.py ?)
 		self.trouves.sort(key = lambda a: (-a[2], a[1]))
-		
+
     def reliquat(self, ref, mot):
         reliq = list(self.chevalet)
         c,l,direction = refcoord(ref)
@@ -636,9 +648,6 @@ class Solveur:
                             break
             pos_scan = self.apres(pos_scan, direction)
         return reliq
-            
-        
-        
 
 
 
@@ -647,20 +656,22 @@ class Solveur:
 # get multiplicateur définie en dehors (redéfinie dans init)
 # parcours qui renvoie un integer et pas un node (modifié le return de parcours)
 # compte_pivot_case plante quand direction est pas dans le dictionnaire -> initialisation de score_pivot à {'v':0,'h':0}
-# rajouté les 7/8 -> quand il reste que 6 lettres
+# rajouté les 7/8
 # pivot sur mot avec joker -> pref et suff en majuscule + suff en maj dans cherche
+# pivot "!"
 
 # refcoord grille.print placer_mot reliquat
+# à faire : fonction reliquat pour jouer des parties joker
 
 def voy(s):
-    m = 0 
+    m = 0
     for k in s:
         if k in "AEUIO":
             m+=1
     return m
 
 def cons(s):
-    m = 0 
+    m = 0
     for k in s:
         if not(k in "AEUIOY?"):
             m+=1
@@ -708,7 +719,7 @@ def fusion(l):
     for k in l: s+=k
     return s
 
-def Partie(dico, grille, sac2, nb_lettres, valeurs, primes, nb_lettres_autorisees): 
+def Partie(dico, grille, sac2, nb_lettres, valeurs, primes, nb_lettres_autorisees):
     sac = list(sac2)
     l = []
     reliq = []
@@ -718,14 +729,18 @@ def Partie(dico, grille, sac2, nb_lettres, valeurs, primes, nb_lettres_autorisee
         S = Solveur(dico,grille,fusion(t),valeurs,primes,nb_lettres_autorisees)
         S.cherche()
         S.tri_solutions()
-        while S.trouves == []:
+        k=1
+        while S.trouves == [] and len(sac)>0 and k<10:
+            print(l,t)
             sac,reliq = sorted(sac+t),[]
             t,sac = tirage(sac, reliq, len(l)+1, nb_lettres)
             S = Solveur(dico,grille,fusion(t),valeurs,primes,nb_lettres_autorisees)
             S.cherche()
             S.tri_solutions()
+            k+=1
         k=0
         tops = []
+        if S.trouves == []: break
         while k<len(S.trouves) and S.trouves[k][2]==S.trouves[0][2]:
             tops.append(S.trouves[k])
             k+=1
@@ -735,19 +750,466 @@ def Partie(dico, grille, sac2, nb_lettres, valeurs, primes, nb_lettres_autorisee
         grille.placer_mot(top[0],top[1])
         total = sac + reliq
     return l
-    
-## Crabb
 
-for no in Gc.Node_list:
-    for l in no.edges.items():
-        if not(l[0] in no.possibles) and l[0]!= '!':
-            no.possibles += l[0]
+## INTERFACE
+from tkinter import *
+import time
+# WARNING : LES LIGNES ET COLONNES SONT INVERSEES
 
-##
-R=list("??AAAAAAAAABBCCDDDEEEEEEEEEEEEEEEFFGGHHIIIIIIIIJKLLLLLMMMNNNNNNOOOOOOPPQRRRRRRSSSSSSTTTTTTUUUUUUVVWXYZ")
-S = Solveur(G,g,"LEONNAF",V,P,7)
-S.cherche()
-S.tri_solutions()
-g.placer_mot(S.trouves[0][0],S.trouves[0][1])
-print(g)
-print(len(S.trouves))
+# faire bouton suppr
+# display : max, (mot), coups, reliquat, top global, négatif global
+# chrono
+
+
+
+class Interface(Frame): #pourq
+
+    def CaseToMatrix(self, case): #mm chose que refcoord ?
+        return (ord(case[0])-ord("A"), int(case[1:])-1)
+
+    def poser(self, lettre, x, y): #ajout
+        self.canvas.create_rectangle(x,y,x+40,y+40,fill="gold")
+        if lettre == lettre.upper():
+            self.lettre = self.canvas.create_text(x+20, y+20, text=lettre,  font=("Helvetica", 30), tags="lettre")
+            if V[lettre]<10: self.valeur = self.canvas.create_text(x+35, y+34, text=V[lettre],  font=("Helvetica", 12), tags="lettre")
+            else: self.valeur = self.canvas.create_text(x+32, y+34, text=V[lettre],  font=("Helvetica", 12), tags="lettre")
+        else:
+            self.lettre = self.canvas.create_text(x+20, y+20, text=lettre.upper(),  font=("Helvetica", 30), tags="lettre", fill = "red")
+
+    def placer(self, ref, mot):
+        if ref == '': return
+		else:
+			(i,j,direction) = refcoord(ref)
+			if direction == 'v':
+				for k in range(len(mot)):
+					self.poser(mot[k],(i+k)*40,j*40+80)
+			else:
+				for k in range(len(mot)):
+					self.poser(mot[k],i*40,(j+k)*40+80)
+
+    def suppr(self, ref, mot):
+        if ref == '': return
+        else:
+			self.mot[1] = ''
+			self.nonpos = [x for x in self.tir]
+			k=0
+			for lettre in sorted(self.tir):
+				self.poser(lettre, 160+k*40, 0)
+				k+=1
+			(i,j,direction) = refcoord(ref)
+			if direction == 'h':
+				for k in range(len(mot)):
+					if self.g.est_vide((i,j+k)):
+						if (i,j+k) in self.mtco: self.canvas.create_rectangle(i*40,(j+k)*40+80,i*40+40,(j+k)*40+40+80,fill="red")#+80
+						elif (i,j+k) in self.mdco: self.canvas.create_rectangle(i*40,(j+k)*40+80,i*40+40,(j+k)*40+40+80,fill="pink")#+80
+						elif (i,j+k) in self.ltco: self.canvas.create_rectangle(i*40,(j+k)*40+80,i*40+40,(j+k)*40+40+80,fill="blue")#+80
+						elif (i,j+k) in self.ldco: self.canvas.create_rectangle(i*40,(j+k)*40+80,i*40+40,(j+k)*40+40+80,fill="#00bfff")#+80
+						else: self.canvas.create_rectangle(i*40,(j+k)*40+80,i*40+40,(j+k)*40+40+80,fill="white")#+80
+			else:
+				for k in range(len(mot)):
+					if self.g.est_vide((i+k,j)):
+						if (i+k,j) in self.mtco: self.canvas.create_rectangle((i+k)*40,j*40+80,(i+k)*40+40,j*40+40+80,fill="red")#+80
+						elif (i+k,j) in self.mdco: self.canvas.create_rectangle((i+k)*40,j*40+80,(i+k)*40+40,j*40+40+80,fill="pink")#+80
+						elif (i+k,j) in self.ltco: self.canvas.create_rectangle((i+k)*40,j*40+80,(i+k)*40+40,j*40+40+80,fill="blue")#+80
+						elif (i+k,j) in self.ldco: self.canvas.create_rectangle((i+k)*40,j*40+80, (i+k)*40+40,j*40+40+80,fill="#00bfff")#+80
+						else: self.canvas.create_rectangle((i+k)*40,j*40+80,(i+k)*40+40,j*40+40+80,fill="white")#+80
+			if self.mot[0]!="":		#retablissement x et y
+				(i,j,direction) = refcoord(self.mot[0])
+				self.x,self.y = i*40,j*40+80
+				if direction == 'h':
+					while (self.y<560+80) and self.g.est_occupe(((self.x//40),(self.y//40-2))):
+						self.mot[1]+=self.g.get_jeton(((self.x//40),(self.y//40-2)))
+						(self.x,self.y) = (self.x, self.y + 40)
+				else:
+					while (self.x<560) and self.g.est_occupe(((self.x//40),(self.y//40-2))):
+						self.mot[1]+=self.g.get_jeton(((self.x//40),(self.y//40-2)))
+						(self.x,self.y) = (self.x+40, self.y)
+
+    def __init__(self, fenetre):
+        fenetre.title("grille") #modif
+
+        Frame.__init__(self, fenetre)#, width='800 px', height='0 px') #modif comme j'ai pu
+        self.pack()
+
+        # création du canvas
+        self.canvas = Canvas(fenetre, width=600, height=680, bg="ivory") #+80
+
+        mt=["A1","A8","A15","H1","H15","O1","O8","O15"]
+        md=["B2","C3","D4","E5","B14","C13","D12","E11","H8","N2","M3","L4","K5","N14","M13","L12","K11"]
+        lt=["B6","B10","F2","F6","F10","F14","J2","J6","J10","J14","N6","N10"]
+        ld=["A4","A12","C7","C9","D1","D8","D15","G3","G7","G9","G13","H4","H12","I3","I7","I9","I13","M7","M9","L1","L8","L15","O4","O12"]
+        valeurs={"A":1, "B":3, "C":3, "D":2, "E":1, "F":4, "G":2, "H":4, "I":1, "J":8, "K":10, "L":1, "M":2, "N":1, "O":1, "P":3, "Q":8, "R":1, "S":1, "T":1, "U":1, "V":4, "W":10, "X":10, "Y":10, "Z":10}
+
+        for i in range(15): #modif : range
+            for j in range(15): #modif : range
+                self.canvas.create_rectangle(i*40,j*40+80,i*40+40,j*40+40+80,fill="white")#+80
+
+        for case in mt:
+            (i,j)=self.CaseToMatrix(case)
+            self.canvas.create_rectangle(i*40,j*40+80,i*40+40,j*40+40+80,fill="red")#+80
+
+        for case in md:
+            (i,j)=self.CaseToMatrix(case)
+            self.canvas.create_rectangle(i*40,j*40+80,i*40+40,j*40+40+80,fill="pink")#+80
+
+        for case in lt:
+            (i,j)=self.CaseToMatrix(case)
+            self.canvas.create_rectangle(i*40,j*40+80,i*40+40,j*40+40+80,fill="blue")#+80
+
+        for case in ld:
+            (i,j)=self.CaseToMatrix(case)
+            self.canvas.create_rectangle(i*40,j*40+80,i*40+40,j*40+40+80,fill="#00bfff")#+80
+
+        self.mtco = [self.CaseToMatrix(case) for case in mt]
+        self.mdco = [self.CaseToMatrix(case) for case in md]
+        self.ltco = [self.CaseToMatrix(case) for case in lt]
+        self.ldco = [self.CaseToMatrix(case) for case in ld]
+
+		self.textmot = self.canvas.create_text(460, 20, text="Mot :",  font=("Helvetica", 15), tags="texte")
+        self.textmax = self.canvas.create_text(460, 60, text="Max :",  font=("Helvetica", 15), tags="texte")
+		self.textcumul = self.canvas.create_text(540, 60, text="Cum :",  font=("Helvetica", 15), tags="texte")
+		self.textnegatif = self.canvas.create_text(540, 20, text="Nég :",  font=("Helvetica", 15), tags="texte")
+		self.textcoups = self.canvas.create_text(40, 60, text="Coup :",  font=("Helvetica", 15), tags="texte")
+
+#        for k in
+        # coordonnées initiales
+        self.x=0
+        self.y=80 #+80
+        self.flechestr=["→","↓"]
+        # création du rectangle
+        #self.rectangle = self.canvas.create_rectangle(0,0,40,40,fill="violet")
+        # ajout du bond sur les touches du clavier
+        self.canvas.focus_set()
+        self.canvas.bind("<Key>", self.clavier)
+        self.canvas.bind("<ButtonRelease>", self.souris)
+
+        self.V = { "A": 1, "B" : 3, "C" : 3, "D" : 2, "E" : 1, "F" : 4, "G" : 2, "H" : 4, "I" : 1, "J" : 8, "K" : 10, "L" : 1, "M" : 2, "N" : 1, "O" : 1, "P" : 3, "Q" : 8, "R" : 1, "S" : 1, "T" : 1, "U" : 1, "V" : 4, "W" : 10, "X" : 10, "Y" : 10, "Z" : 10, "?" : 0 }
+        self.P = {0:0,1:0,2:0,3:0,4:0,5:0,6:0,7:50,8:75,9:100,10:125}
+        self.sac = list("??AAAAAAAAABBCCDDDEEEEEEEEEEEEEEEFFGGHHIIIIIIIIJKLLLLLMMMNNNNNNOOOOOOPPQRRRRRRSSSSSSTTTTTTUUUUUUVVWXYZ")
+        self.g = grille_test('/Users/yoannloday/Documents/Scrabble/Python/grille.txt')
+        self.tir = []
+        self.reliq = []
+        self.nonpos = [] #lettres du tirage non posées
+        self.started = False  #partie en cours
+        self.mot = ['','']
+        self.tops = []
+        self.coup = 0
+        self.sens = 0
+        self.maxi = 0
+        self.cumul = 0
+        self.neg = 0
+        self.abandon = False
+
+#		self.minute = 0
+#		self.seconde = 0
+#		self.canvas.after(10, lambda: self.count()) #à afaire
+
+        # création du canvas
+        self.canvas.pack()#side=LEFT, padx=20, pady=80)    #modif
+
+# fonction appellée lorsque l'utilisateur presse une touche
+    def clavier(self, event):
+        touche = event.keysym
+        lettre = event.char
+        print(touche)
+        try:
+#            if self.canvas.find_withtag("curseur")==():
+#                self.rectangle = self.canvas.create_rectangle(self.x,self.y,self.x+40,self.y+40, outline="#32cd32", tags="curseur")
+#                self.fleche = self.canvas.create_text(self.x+20, self.y+20, text="→", font=("Helvetica", 20, "bold"), tags="curseur")
+            if (touche == "Up") and (self.y>0+80): #+80
+                (self.x,self.y) = (self.x, self.y - 40)
+                self.canvas.move("curseur", 0,-40)
+            elif (touche == "Down") and (self.y<560+80): #+80
+                (self.x,self.y) = (self.x, self.y + 40)
+                self.canvas.move("curseur", 0,40)
+            elif (touche == "Right") and (self.x<560):
+                (self.x,self.y) = (self.x + 40, self.y)
+                self.canvas.move("curseur", 40,0)
+            elif (touche == "Left") and (self.x>0):
+                (self.x,self.y) = (self.x -40, self.y)
+                self.canvas.move("curseur", -40,0)
+            elif (touche == "Return"):
+                print(self.mot)
+                print(self.tops)
+                self.canvas.delete("curseur")
+                if (self.mot in self.tops) or not(self.started) or self.abandon:
+                	self.canvas.delete("score")
+                	self.canvas.delete("maximum")
+                	self.canvas.delete("cumul")
+                	self.canvas.delete("neg")
+                	self.abandon = False
+					self.suppr(self.mot[0],self.mot[1])
+					if self.started:
+						self.maxi = 0
+						self.maximum = self.canvas.create_text(490, 60, text=self.S.trouves[0][2],  font=("Helvetica", 15), tags="maximum")
+						self.cumul += self.S.trouves[0][2]
+						self.cumultxt = self.canvas.create_text(580, 60, text=self.cumul,  font=("Helvetica", 15), tags="cumul")
+						self.negtxt = self.canvas.create_text(580, 20, text=self.neg,  font=("Helvetica", 15), tags="neg")
+						top = rd.choice(self.tops)
+						self.placer(top[0],top[1])
+						self.reliq = self.S.reliquat(top[0],top[1])
+						self.g.placer_mot(top[0],top[1])
+					else: self.started = True
+                    self.total = self.sac + self.reliq
+                    self.mot = ['','']
+                    if len(self.total)>1 and (('Y' in self.total) or ('?' in self.total) or (voy(self.total)>0 and cons(self.total)>0)):
+						self.coup +=1
+						self.canvas.delete("coup")
+						self.couptxt = self.canvas.create_text(80, 60, text=self.coup,  font=("Helvetica", 20), tags="coup")
+                        self.tir ,self.sac = tirage(self.sac, self.reliq, self.coup, 7)
+                        self.nonpos = [x for x in self.tir]
+                        self.tir,self.nonpos = sorted(self.tir),sorted(self.nonpos)
+                        self.S = Solveur(Gc,self.g,fusion(self.tir),V,P,7)
+                        self.S.cherche()
+                        self.S.tri_solutions()
+                        k=0
+                        self.tops = []
+                        if self.S.trouves == []: return
+                        while k<len(self.S.trouves) and self.S.trouves[k][2]==self.S.trouves[0][2]:
+                            self.tops.append([self.S.trouves[k][0],self.S.trouves[k][1]])
+                            k+=1
+                        k=0
+                        for lettre in self.tir:
+                            self.poser(lettre, 160+k*40, 0)
+                            k+=1
+						for m in range(k,7):
+							self.canvas.create_rectangle(160+m*40,0,160+m*40+40,40,fill="white")
+						self.maximum.pack()
+					else:
+						self.started = False
+						k=0
+						for lettre in self.reliq:
+							self.poser(lettre, 160+k*40, 0)
+							k+=1
+						for m in range(k,7):
+							self.canvas.create_rectangle(160+m*40,0,160+m*40+40,40,fill="white")
+						self.fin = self.canvas.create_text(300, 60, text="FIN",  font=("Helvetica", 40), tags="fin")
+						self.fin.pack()
+
+				else:
+					self.canvas.delete("curseur")
+					self.canvas.delete("score")
+					for sol in self.S.trouves:
+						if sol[0]==self.mot[0] and sol[1]==self.mot[1]:
+							self.suppr(self.mot[0],self.mot[1])
+							self.score = self.canvas.create_text(490, 20, text=sol[2],  font=("Helvetica", 15), tags="score")
+							if sol[2]>=self.maxi:
+								self.maxi = sol[2]
+								self.canvas.delete("maximum")
+								self.maximum = self.canvas.create_text(490, 60, text=sol[2],  font=("Helvetica", 15), tags="maximum")
+								self.maximum.pack()
+							self.score.pack()
+							break
+					self.score = self.canvas.create_text(490, 20, text=0,  font=("Helvetica", 15), tags="score")
+					if self.maxi == 0:
+						self.canvas.delete("maximum")
+						self.maximum = self.canvas.create_text(490, 60, text=0,  font=("Helvetica", 15), tags="maximum")
+					self.suppr(self.mot[0],self.mot[1])
+
+            elif (touche == "space"):
+                self.sens=(self.sens+1)%2
+                self.canvas.itemconfigure(self.fleche, text=self.flechestr[self.sens])
+                self.mot = ['','']
+                if self.sens==0: mot[0]=coordref((self.x//40,self.y//40-2),'h')#
+                else: mot[0]=coordref((self.x//40,self.y//40-2),'v')#
+
+            elif (touche in "abcdefghijklmnopqrstuvwxyz"): #
+                jouer = False
+                for k in range(len(self.nonpos)):
+                    if self.nonpos[k]==touche.upper():
+                        self.poser(touche.upper(), self.x, self.y) #
+                        self.mot[1]+=touche.upper()
+                        self.nonpos[k]=''
+                        self.canvas.create_rectangle(160+k*40,0,160+k*40+40,40,fill="white")
+                        jouer = True
+                        break
+                if jouer and self.sens and (self.y<560+80): #+80 (suppr y<)
+                    while (self.y<560+80) and self.g.est_occupe(((self.x//40),(self.y//40-2+1))):
+                        self.mot[1]+=self.g.get_jeton(((self.x//40),(self.y//40-2+1)))
+                        (self.x,self.y) = (self.x, self.y + 40)
+                        self.canvas.move("curseur", 0,40)
+                    if (self.y<560+80):
+                        (self.x,self.y) = (self.x, self.y + 40)
+                        self.canvas.move("curseur", 0,40)
+                    else:
+                        self.canvas.delete("curseur")
+                elif jouer and self.sens+1==1 and (self.x<560): #suppr x<560
+                    while (self.x<560) and self.g.est_occupe(((self.x//40+1),(self.y//40-2))):
+                        self.mot[1]+=self.g.get_jeton(((self.x//40+1),(self.y//40-2)))
+                        (self.x,self.y) = (self.x+40, self.y)
+                        self.canvas.move("curseur", 40,0)
+                    if (self.x<560):
+                        (self.x,self.y) = (self.x+40, self.y)
+                        self.canvas.move("curseur", 40,0)
+                    else:
+                        self.canvas.delete("curseur")
+
+            elif (touche in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"):
+                jouer = False
+                for k in range(len(self.nonpos)):
+                    if self.nonpos[k]=='?':
+                        self.poser(touche.lower(), self.x, self.y) #
+                        self.mot[1]+=touche.lower()
+                        self.nonpos[k]=''
+                        self.canvas.create_rectangle(160+k*40,0,160+k*40+40,40,fill="white")
+                        jouer = True
+                        break
+                if jouer and self.sens and (self.y<560+80): #+80 (suppr y<)
+                    while (self.y<560+80) and self.g.est_occupe(((self.x//40),(self.y//40-2+1))):
+                        self.mot[1]+=self.g.get_jeton(((self.x//40),(self.y//40-2+1)))
+                        (self.x,self.y) = (self.x, self.y + 40)
+                        self.canvas.move("curseur", 0,40)
+                    if (self.y<560+80):
+                        (self.x,self.y) = (self.x, self.y + 40)
+                        self.canvas.move("curseur", 0,40)
+                    else:
+                        self.canvas.delete("curseur")
+                elif jouer and self.sens+1 and (self.x<560): #suppr x<560
+                    while (self.x<560) and self.g.est_occupe(((self.x//40+1),(self.y//40-2))):
+                        self.mot[1]+=self.g.get_jeton(((self.x//40+1),(self.y//40-2)))
+                        (self.x,self.y) = (self.x+40, self.y)
+                        self.canvas.move("curseur", 40,0)
+                    if (self.x<560):
+                        (self.x,self.y) = (self.x+40, self.y)
+                        self.canvas.move("curseur", 40,0)
+                    else:
+                        self.canvas.delete("curseur")
+			elif (touche == "at"): #reset grille
+				self.sac = list("??AAAAAAAAABBCCDDDEEEEEEEEEEEEEEEFFGGHHIIIIIIIIJKLLLLLMMMNNNNNNOOOOOOPPQRRRRRRSSSSSSTTTTTTUUUUUUVVWXYZ")
+				self.g = grille_test('/Users/yoannloday/Documents/Scrabble/Python/grille.txt')
+				self.canvas.delete("fin")
+				self.tir = []
+				self.reliq = []
+				self.nonpos = []
+				self.started = False
+				self.mot = ['','']
+				self.tops = []
+				self.coup = 0
+				self.sens = 0
+				self.maxi = 0
+				self.cumul = 0
+				self.neg = 0
+				for i in range(15):
+					for j in range(15): self.canvas.create_rectangle(i*40,j*40+80,i*40+40,j*40+40+80,fill="white")#+80
+				for (i,j) in self.mtco: self.canvas.create_rectangle(i*40,j*40+80,i*40+40,j*40+40+80,fill="red")#+80
+				for (i,j) in self.mdco: self.canvas.create_rectangle(i*40,j*40+80,i*40+40,j*40+40+80,fill="pink")#+80
+				for (i,j) in self.ltco: self.canvas.create_rectangle(i*40,j*40+80,i*40+40,j*40+40+80,fill="blue")#+80
+				for (i,j) in self.ldco: self.canvas.create_rectangle(i*40,j*40+80,i*40+40,j*40+40+80,fill="#00bfff")#+80
+				for m in range(7): self.canvas.create_rectangle(160+m*40,0,160+m*40+40,40,fill="white")
+			elif (touche == "minus"): #negatif (c'est pas très bien fait)
+				self.neg += self.maxi - self.S.trouves[0][2]
+				self.abandon = True
+
+#			elif (touche == "BackSpace"):
+#				return
+
+        except AttributeError:
+            self.rectangle = self.canvas.create_rectangle(self.x,self.y,self.x+40,self.y+40, outline="#32cd32", tags="curseur")
+            self.fleche = self.canvas.create_text(self.x+20, self.y+20, text=self.flechestr[self.sens], font=("Helvetica", 20, "bold"), tags="curseur")
+
+    # changement de coordonnées pour le rectangle
+#        self.canvas.coords(self.rectangle, self.x, self.y, self.x+40, self.y+40)
+
+    def souris(self, event):
+        num = event.num
+        newx = int(event.x/40)*40 #//
+        newy = int(event.y/40)*40
+        self.suppr(self.mot[0],self.mot[1])
+        try:
+            if self.canvas.find_withtag("curseur")==():
+                self.x = newx
+                self.y = newy
+                self.sens = num//2
+                self.rectangle = self.canvas.create_rectangle(self.x,self.y,self.x+40,self.y+40, outline="#32cd32", width=3, tags="curseur")
+                self.fleche = self.canvas.create_text(self.x+20, self.y+20, text=self.flechestr[self.sens], font=("Helvetica", 20, "bold"), tags="curseur")
+
+#                if self.sens==0: self.mot[0]=coordref((self.x//40,self.y//40-2),'v')#
+#                else: self.mot[0]=coordref((self.x//40,self.y//40-2),'h')#
+
+                if self.sens==0:
+					if not('v' in self.S.pref[self.x//40][self.y//40-2]): self.mot[1] = ''
+					else: self.mot[1] = self.S.pref[self.x//40][self.y//40-2]['v']
+					self.mot[0] = coordref((self.x//40 - len(self.mot[1]) ,self.y//40-2),'v')#
+                else:
+					if not('h' in self.S.pref[self.x//40][self.y//40-2]): self.mot[1] = ''
+					else: self.mot[1] = self.S.pref[self.x//40][self.y//40-2]['h']
+					self.mot[0] = coordref((self.x//40 ,self.y//40-2 - len(self.mot[1])),'h')#
+
+            elif newx==self.x and newy==self.y and self.sens==num//2:
+                self.sens=(1+self.sens)%2
+                self.canvas.itemconfigure(self.fleche, text=self.flechestr[self.sens])
+                if self.sens==0:
+					if not('v' in self.S.pref[self.x//40][self.y//40-2]): self.mot[1] = ''
+					else: self.mot[1] = self.S.pref[self.x//40][self.y//40-2]['v']
+					self.mot[0] = coordref((self.x//40 - len(self.mot[1]) ,self.y//40-2),'v')#
+                else:
+					if not('h' in self.S.pref[self.x//40][self.y//40-2]): self.mot[1] = ''
+					else: self.mot[1] = self.S.pref[self.x//40][self.y//40-2]['h']
+					self.mot[0] = coordref((self.x//40 ,self.y//40-2 - len(self.mot[1])),'h')#
+            elif newx==self.x and newy==self.y and self.sens!=num//2:
+                self.sens=num//2
+                self.canvas.itemconfigure(self.fleche, text=self.flechestr[self.sens])
+                if self.sens==0:
+					if not('v' in self.S.pref[self.x//40][self.y//40-2]): self.mot[1] = ''
+					else: self.mot[1] = self.S.pref[self.x//40][self.y//40-2]['v']
+					self.mot[0] = coordref((self.x//40 - len(self.mot[1]) ,self.y//40-2),'v')#
+                else:
+					if not('h' in self.S.pref[self.x//40][self.y//40-2]): self.mot[1] = ''
+					else: self.mot[1] = self.S.pref[self.x//40][self.y//40-2]['h']
+					self.mot[0] = coordref((self.x//40 ,self.y//40-2 - len(self.mot[1])),'h')#
+            else:
+                self.sens=num//2
+                self.canvas.move("curseur", newx-self.x, newy-self.y) #switched
+                self.canvas.itemconfigure(self.fleche, text=self.flechestr[self.sens]) #switched
+                self.x = newx
+                self.y = newy
+                if self.sens==0:
+					if not('v' in self.S.pref[self.x//40][self.y//40-2]): self.mot[1] = ''
+					else: self.mot[1] = self.S.pref[self.x//40][self.y//40-2]['v']
+					self.mot[0] = coordref((self.x//40 - len(self.mot[1]) ,self.y//40-2),'v')#
+                else:
+					if not('h' in self.S.pref[self.x//40][self.y//40-2]): self.mot[1] = ''
+					else: self.mot[1] = self.S.pref[self.x//40][self.y//40-2]['h']
+					self.mot[0] = coordref((self.x//40 ,self.y//40-2 - len(self.mot[1])),'h')#
+        except AttributeError:
+            print("EXCEPT")
+            self.rectangle = self.canvas.create_rectangle(self.x,self.y,self.x+40,self.y+40, outline="#32cd32", width=3, tags="curseur")
+            self.fleche = self.canvas.create_text(self.x+20, self.y+20, text="→", tags="curseur", font=("Helvetica", 20, "bold"))
+
+    def countdown(t):
+        while t: #modif : indentation
+            mins, secs = divmod(t, 60)
+            timeformat = '{:02d}:{:02d}'.format(mins, secs)
+            print(timeformat, end='\r')
+            time.sleep(1)
+            t -= 1
+
+	def count(self):
+		print('coucou')
+        if self.started:
+            if int(seconde) < 59:
+                self.seconde = int(self.seconde)
+                self.seconde += 1
+            else:
+                self.seconde = '00'
+                self.minute = int(minute)
+                self.minute += 1
+            self.seconde = str(self.seconde)
+            self.seconde = str(self.seconde)
+            if len(self.seconde) == 1:
+                self.seconde = '0' + self.seconde
+            time = self.minute + ' : ' + self.seconde
+
+            self.chrono = Label(self.frame, text=time, font=("Helvetica", 20))
+			self.chrono.grid(row=0, column=2)
+
+
+#            self.canvas.delete("chrono")
+ #           self.chrono = self.canvas.create_text(20,20, text=time, font=("Helvetica", 20), tags="chrono")
+	#		self.chrono.pack()
+
+
+fenetre = Tk()
+interface = Interface(fenetre)
+
+interface.mainloop()
